@@ -12,20 +12,104 @@
 #include <sstream>
 
 #include "http.h"
-using namespace std;
 
-in_addr hostToIpAddr(const std::string& host) {
+in_addr_t hostToIpAddr(const std::string& host) {
     hostent* hostname = gethostbyname(host.c_str());
-    return (**(in_addr**)hostname->h_addr_list);
+    return (**(in_addr_t**)hostname->h_addr_list);
     
 }
 
+std::string getHostFromUrl(const std::string & url){
+  int itr = 0;
+  bool hasHttp = false;
+  if(url.compare(0,7,"http://") == 0){
+    itr += 7;
+    hasHttp = true;
+  }
+
+  int reference = hasHttp ? 7:0;
+  if(url.compare(reference,4,"www.") == 0){
+    itr += 4;
+  }
+  std::string host = "";
+  for(size_t  i = itr; i < url.length();++i){
+    if(url[i] == ':' || url[i] =='/'){
+      break;
+    }
+    host += url[i];
+  }
+
+  
+  return host;
+}
+
+int getPortFromUrl(const std::string & url){
+  int itr = 0;
+  bool hasHttp = false;
+  if(url.compare(0,7,"http://") == 0){
+    itr += 7;
+    hasHttp = true;
+  }
+
+  int reference = hasHttp ? 7:0;
+  if(url.compare(reference,4,"www.") == 0){
+    itr += 4;
+  }
+
+  std::string portString = "80";
+  for(size_t  i = itr; i < url.length();++i){
+    if(url[i] == ':'){
+      ++i;
+      portString = "";
+      while(url[i] != '/' && i < url.length()){
+        portString += url[i];
+        ++i;
+      }
+      break;
+    }
+  }
+
+  
+  return std::stoi(portString);
+}
+
+
+std::string getPathFromUrl(const std::string & url){
+  int itr = 0;
+  bool hasHttp = false;
+  if(url.compare(0,7,"http://") == 0){
+    itr += 7;
+    hasHttp = true;
+  }
+
+  int reference = hasHttp ? 7:0;
+  if(url.compare(reference,4,"www.") == 0){
+    itr += 4;
+  }
+
+  std::string path = "";
+  for(size_t  i = itr; i < url.length();++i){
+    if(url[i] == '/'){
+      while(url[i] != '/' && i < url.length()){
+        path += url[i];
+        ++i;
+      }
+      break;
+    }
+  }
+
+  
+  return path;
+}
+
+
 int main(int argc, char *argv[]) {
 
+  int sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
   for(int i = 1; i < argc; i++) {
     // cria o socket TCP IP
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    
 
     // atividade de preenchimento da estrutura de endereço IP
     // e porta de conexão, precisa ser zerado o restante da estrutura
@@ -36,10 +120,11 @@ int main(int argc, char *argv[]) {
     //  char             sin_zero[8];  // zero this if you want to
     // };
     //cout << inet_ntoa(hostToIpAddr("google.com")) << endl;
+    std::string url = argv[i];
     struct sockaddr_in serverAddr;
     serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port = htons(80);     // short, network byte order
-    serverAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    serverAddr.sin_port = getPortFromUrl(url);     // short, network byte order
+    serverAddr.sin_addr.s_addr = hostToIpAddr(getHostFromUrl(url));
     memset(serverAddr.sin_zero, '\0', sizeof(serverAddr.sin_zero));
 
     // conecta com o servidor atraves do socket
@@ -62,8 +147,7 @@ int main(int argc, char *argv[]) {
     // a rotina abaixo, imprime o valor do endereço IP do cliente
     char ipstr[INET_ADDRSTRLEN] = {'\0'};
     inet_ntop(clientAddr.sin_family, &clientAddr.sin_addr, ipstr, sizeof(ipstr));
-    std::cout << "Set up a connection from: " << ipstr << ":" <<
-      ntohs(clientAddr.sin_port) << std::endl;
+    std::cout << "Set up a connection from: " << ipstr << ":" << ntohs(clientAddr.sin_port) << std::endl;
 
     // trecho de código para leitura e envio de dados nessa conexao
     // buffer eh o buffer de dados a ser recebido no socket com 20 bytes
@@ -75,16 +159,16 @@ int main(int argc, char *argv[]) {
     // zera o buffer
     memset(buf, '\0', sizeof(buf));
 
-    // make the requests
-    for(size_t itr =  1; itr < (size_t)argc; ++itr){
-      
-    }
-    std::cout << "send: ";
-    std::cin >> input;
+    HTTPRequest request = HTTPRequest();
+    request.setMethod("GET");
+    request.setHost(getHostFromUrl(url));
+    request.setUrl(getPathFromUrl(url));
 
     // converte a string lida em vetor de bytes 
     // com o tamanho do vetor de caracteres
-    if (send(sockfd, input.c_str(), input.size(), 0) == -1) {
+  
+    std::vector<uint8_t> messageEncoded = request.encode();
+    if (send(sockfd,&messageEncoded[0], messageEncoded.size(), 0) == -1) {
       perror("send");
       return 4;
     }
@@ -109,8 +193,9 @@ int main(int argc, char *argv[]) {
     ss.str("");
     
     // fecha o socket
-    close(sockfd);
+    
   }
+  close(sockfd);
 
   return 0;
 }
