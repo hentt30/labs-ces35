@@ -23,12 +23,17 @@ class HTTPRequest
 class HTTPResponse
 {
     private:
-        std::string method;
         int statusCode;
+        std::string statusMessage;
         int contentLength;
+        std::string contentType;
+        std::string body;
     public:
-        void setMethod(const std::string& method);
         void setStatusCode(int statusCode);
+        void setStatusMessage(const std::string& message);
+        void setContentLength(int contentLength);
+        void setContentType(const std::string& type);
+        void setBody(const std::string& body);
         std::vector<int8> encode(std::string& output);
         void decode(std::vector<int8> data);
 };
