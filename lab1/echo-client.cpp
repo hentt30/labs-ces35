@@ -107,10 +107,10 @@ int main(int argc, char *argv[]) {
 
     // zera a string ss
     ss.str("");
+    
+    // fecha o socket
+    close(sockfd);
   }
-
-  // fecha o socket
-  close(sockfd);
 
   return 0;
 }
