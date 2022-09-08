@@ -35,7 +35,7 @@ class HTTPRequest
             std::string message = format<std::string>("%s %s HTTP/1.0\r\nHost: %s\r\n\r\n",this->method,this->url,this->host);
             return message;
         }
-        std::vector<int8> encode(std::string& output){
+        std::vector<int8> encode(){
             std::string message = this->getHttpMessage();
             std::vector<int8> byteCode;
             for(char value: message)
@@ -100,7 +100,7 @@ class HTTPResponse
             std::string message = format<std::string>("HTTP/1.0 %s %s\r\nContent-Length: %d\r\nContent-Type: %s\r\n\r\n", std::to_string(this->statusCode), this->statusMessage,this->contentType,this->contentLength);
             return message;
         }
-        std::vector<int8> encode(std::string& output){
+        std::vector<int8> encode(){
             std::string message = this->getHttpMessage();
             std::vector<int8> byteCode;
             for(char value: message)

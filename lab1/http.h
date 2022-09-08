@@ -16,7 +16,7 @@ class HTTPRequest
         void setUrl(const std::string& url){ this->url = url;}
         void setMethod(const std::string& method){  this->method = method; }
         void setHost(const std::string& host){ this->host = host; }
-        std::vector<int8> encode(std::string& output);
+        std::vector<int8> encode();
         void decode(std::vector<int8> data);
 };
 
@@ -34,6 +34,6 @@ class HTTPResponse
         void setContentLength(int contentLength);
         void setContentType(const std::string& type);
         void setBody(const std::string& body);
-        std::vector<int8> encode(std::string& output);
+        std::vector<int8> encode();
         void decode(std::vector<int8> data);
 };
