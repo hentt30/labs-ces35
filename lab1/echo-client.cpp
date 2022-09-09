@@ -29,16 +29,11 @@ in_addr hostToIpAddrB(const std::string& host) {
 
 std::string getHostFromUrl(const std::string & url){
   int itr = 0;
-  bool hasHttp = false;
+ 
   if(url.compare(0,7,"http://") == 0){
     itr += 7;
-    hasHttp = true;
   }
 
-  /*int reference = hasHttp ? 7:0;
-  if(url.compare(reference,4,"www.") == 0){
-    itr += 4;
-  }*/
   std::string host = "";
   for(size_t  i = itr; i < url.length();++i){
     if(url[i] == ':' || url[i] =='/'){
@@ -128,24 +123,22 @@ int main(int argc, char *argv[]) {
     //  struct in_addr   sin_addr;     // see struct in_addr, below
     //  char             sin_zero[8];  // zero this if you want to
     // };
-    cout << inet_ntoa(hostToIpAddrB("www.google.com"))<<endl;
+    //cout << inet_ntoa(hostToIpAddrB("localhost"))<<endl;
     std::string url = argv[i];
     
     struct sockaddr_in serverAddr;
     serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port = getPortFromUrl(url);     // short, network byte order
+    serverAddr.sin_port = htons(getPortFromUrl(url));     // short, network byte order
     serverAddr.sin_addr.s_addr = hostToIpAddr(getHostFromUrl(url));
     memset(serverAddr.sin_zero, '\0', sizeof(serverAddr.sin_zero));
     
     // conecta com o servidor atraves do socket
   
-    std::cout <<getHostFromUrl(url)<<std::endl;
+    
     if (connect(sockfd, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) == -1) {
-      cout<<"dddd"<<endl;
       perror("connect");
       return 2;
     }
-    std::cout <<"getHostFromUrl(url)"<<std::endl;
     // a partir do SO, eh possivel obter o endereço IP usando 
     // pelo cliente (nos mesmos) usando a funcao getsockname
     struct sockaddr_in clientAddr;
