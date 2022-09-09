@@ -15,6 +15,7 @@
 #include "http.h"
 using namespace std;
 
+
 in_addr_t hostToIpAddr(const std::string& host) {
     hostent* hostname = gethostbyname(host.c_str());
     return (**(in_addr_t**)hostname->h_addr_list);
@@ -93,16 +94,15 @@ std::string getPathFromUrl(const std::string & url){
   std::string path = "";
   for(size_t  i = itr; i < url.length();++i){
     if(url[i] == '/'){
-      while(url[i] != '/' && i < url.length()){
+      while(i < url.length()){
         path += url[i];
         ++i;
       }
-      break;
     }
   }
 
   
-  return path;
+  return path.size() ==0 ? "/":path;
 }
 
 
@@ -158,7 +158,7 @@ int main(int argc, char *argv[]) {
     // buffer eh o buffer de dados a ser recebido no socket com 20 bytes
     // input eh para a leitura do teclado
     // ss eh para receber o valor de volta
-    char buf[20] = {0};
+    char buf[BUFFER_SIZE] = {0};
     std::string input;
     std::stringstream ss;
     // zera o buffer
@@ -172,27 +172,47 @@ int main(int argc, char *argv[]) {
     // converte a string lida em vetor de bytes 
     // com o tamanho do vetor de caracteres
     
-  
+    cout<<request.getHttpMessage()<<endl;
     std::vector<uint8_t> messageEncoded = request.encode();
     if (send(sockfd,&messageEncoded[0], messageEncoded.size(), 0) == -1) {
       perror("send");
       return 4;
     }
 
-    // recebe no buffer uma certa quantidade de bytes ate 20 
-    if (recv(sockfd, buf, 20, 0) == -1) {
-      perror("recv");
-      return 5;
+    
+    std::vector<uint8_t> encodedMessage;
+    while(true){
+      // recebe no buffer uma certa quantidade de bytes ate 20 
+      if (recv(sockfd, buf, BUFFER_SIZE, 0) == -1) {
+        perror("recv");
+        return 5;
+      }
+      size_t itr = 0;
+      while(buf[itr] != '\0') {
+        encodedMessage.push_back((uint8_t)buf[itr]);
+        ++itr;
+      }
+
+      size_t size = encodedMessage.size();
+      cout<<size<<endl;
+      if(encodedMessage.size() < 4) continue;
+      
+      if(encodedMessage[size - 1] == 13 && encodedMessage[size - 2] == 10 && encodedMessage[size - 3] == 13 && encodedMessage[size - 4] == 10)
+      {
+        break;
+      }
+
     }
+
+    string a;
+    for(uint8_t i : encodedMessage) a +=  (char)i;
 
     // coloca o conteudo do buffer na string
     // imprime o buffer na tela
-    ss << buf << std::endl;
-    std::cout << "echo: ";
-    std::cout << buf << std::endl;
+    ss << a << std::endl;
 
     HTTPResponse response = HTTPResponse();
-    response.decode(std::vector<uint8_t>(buf, buf+20));
+    response.decode(encodedMessage);
 
     std::ofstream resource(getPathFromUrl(url));
     resource << response.getBody();
