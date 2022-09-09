@@ -10,6 +10,9 @@
 
 #include <iostream>
 #include <sstream>
+#include <fstream>
+
+#include "http.h"
 
 in_addr_t hostToIpAddr(const std::string& host) {
     hostent* hostname = gethostbyname(host.c_str());
@@ -108,10 +111,45 @@ int main(int argc, char *argv[]) {
     // para o cliente de volta
     ss << buf << std::endl;
     std::cout << buf << std::endl;
+    
     // We should analyze the buffer call
     
+    HTTPRequest request = HTTPRequest();
+    HTTPResponse response = HTTPResponse();
+
+    if (request.decode(std::vector<uint8_t>(buf, buf+20)) == -1) {
+      response.setStatusCode(400);
+      response.setStatusMessage("Bad Request");
+      response.setContentLength(0);
+      response.setContentType("text/html");
+      response.setBody("");
+    }
+    else {
+      std::ifstream resource(request.getPath());
+      if (resource.fail()) {
+        response.setStatusCode(404);
+        response.setStatusMessage("Not Found");
+        response.setContentLength(0);
+        response.setContentType("text/html");
+        response.setBody("");
+      }
+      else {
+        std::stringstream buffer2;
+        buffer2 << resource.rdbuf();
+        std::string text_resource = buffer2.str();
+
+        response.setStatusCode(200);
+        response.setStatusMessage("OK");
+        response.setContentLength(text_resource.length());
+        response.setContentType("text/html");
+        response.setBody(text_resource);
+      }
+    }
+
+    std::vector<uint8_t> encoded_response = response.encode();
+
     // envia de volta o buffer recebido como um echo
-    if (send(clientSockfd, buf, 20, 0) == -1) {
+    if (send(clientSockfd, &encoded_response[0], encoded_response.size(), 0) == -1) {
       perror("send");
       return 6;
     }

@@ -10,6 +10,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <fstream>
 
 #include "http.h"
 
@@ -162,7 +163,7 @@ int main(int argc, char *argv[]) {
     HTTPRequest request = HTTPRequest();
     request.setMethod("GET");
     request.setHost(getHostFromUrl(url));
-    request.setUrl(getPathFromUrl(url));
+    request.setPath(getPathFromUrl(url));
 
     // converte a string lida em vetor de bytes 
     // com o tamanho do vetor de caracteres
@@ -185,16 +186,25 @@ int main(int argc, char *argv[]) {
     std::cout << "echo: ";
     std::cout << buf << std::endl;
 
-    // se a string tiver o valor close, sair do loop de eco
+    HTTPResponse response = HTTPResponse();
+    response.decode(std::vector<uint8_t>(buf, buf+20));
+
+    std::ofstream resource(getPathFromUrl(url));
+    resource << response.getBody();
+    resource.close();
+
+    ss << response.getHttpMessage() << std::endl;
+    
+    // o conteudo do buffer convertido para string pode 
+    // ser comparado com palavras-chave
     if (ss.str() == "close\n")
       break;
-
+    
     // zera a string ss
     ss.str("");
-    
-    // fecha o socket
-    
+      
   }
+  // fecha o socket
   close(sockfd);
 
   return 0;
