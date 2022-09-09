@@ -6,18 +6,17 @@ typedef uint8_t int8;
 class HTTPRequest
 {
     private:
-        std::string url;
+        std::string path;
         std::string method;
         std::string host;
-        template<typename ... Args>
-        std::string format(const std::string& formatString, Args ... args);
-        std::string getHttpMessage();
     public:
-        void setUrl(const std::string& url){ this->url = url;}
-        void setMethod(const std::string& method){  this->method = method; }
-        void setHost(const std::string& host){ this->host = host; }
+        void setPath(const std::string& path);
+        std::string getPath();
+        void setMethod(const std::string& method);
+        void setHost(const std::string& host);
         std::vector<int8> encode();
-        void decode(std::vector<int8> data);
+        int decode(std::vector<int8> data);
+        std::string getHttpMessage();
 };
 
 class HTTPResponse
@@ -34,6 +33,8 @@ class HTTPResponse
         void setContentLength(int contentLength);
         void setContentType(const std::string& type);
         void setBody(const std::string& body);
+        std::string getBody();
         std::vector<int8> encode();
         void decode(std::vector<int8> data);
+        std::string getHttpMessage();
 };
