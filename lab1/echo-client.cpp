@@ -13,10 +13,17 @@
 #include <fstream>
 
 #include "http.h"
+using namespace std;
 
 in_addr_t hostToIpAddr(const std::string& host) {
     hostent* hostname = gethostbyname(host.c_str());
     return (**(in_addr_t**)hostname->h_addr_list);
+    
+}
+
+in_addr hostToIpAddrB(const std::string& host) {
+    hostent* hostname = gethostbyname(host.c_str());
+    return (**(in_addr**)hostname->h_addr_list);
     
 }
 
@@ -28,10 +35,10 @@ std::string getHostFromUrl(const std::string & url){
     hasHttp = true;
   }
 
-  int reference = hasHttp ? 7:0;
+  /*int reference = hasHttp ? 7:0;
   if(url.compare(reference,4,"www.") == 0){
     itr += 4;
-  }
+  }*/
   std::string host = "";
   for(size_t  i = itr; i < url.length();++i){
     if(url[i] == ':' || url[i] =='/'){
@@ -109,6 +116,7 @@ int main(int argc, char *argv[]) {
   int sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
   for(int i = 1; i < argc; i++) {
+    
     // cria o socket TCP IP
     
 
@@ -120,21 +128,24 @@ int main(int argc, char *argv[]) {
     //  struct in_addr   sin_addr;     // see struct in_addr, below
     //  char             sin_zero[8];  // zero this if you want to
     // };
-    //cout << inet_ntoa(hostToIpAddr("google.com")) << endl;
+    cout << inet_ntoa(hostToIpAddrB("www.google.com"))<<endl;
     std::string url = argv[i];
+    
     struct sockaddr_in serverAddr;
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_port = getPortFromUrl(url);     // short, network byte order
     serverAddr.sin_addr.s_addr = hostToIpAddr(getHostFromUrl(url));
     memset(serverAddr.sin_zero, '\0', sizeof(serverAddr.sin_zero));
-
+    
     // conecta com o servidor atraves do socket
   
+    std::cout <<getHostFromUrl(url)<<std::endl;
     if (connect(sockfd, (struct sockaddr *)&serverAddr, sizeof(serverAddr)) == -1) {
+      cout<<"dddd"<<endl;
       perror("connect");
       return 2;
     }
-
+    std::cout <<"getHostFromUrl(url)"<<std::endl;
     // a partir do SO, eh possivel obter o endereço IP usando 
     // pelo cliente (nos mesmos) usando a funcao getsockname
     struct sockaddr_in clientAddr;
@@ -143,7 +154,7 @@ int main(int argc, char *argv[]) {
       perror("getsockname");
       return 3;
     }
-
+    
     // em caso de multiplos endereços, isso permite o melhor controle
     // a rotina abaixo, imprime o valor do endereço IP do cliente
     char ipstr[INET_ADDRSTRLEN] = {'\0'};
@@ -167,6 +178,7 @@ int main(int argc, char *argv[]) {
 
     // converte a string lida em vetor de bytes 
     // com o tamanho do vetor de caracteres
+    
   
     std::vector<uint8_t> messageEncoded = request.encode();
     if (send(sockfd,&messageEncoded[0], messageEncoded.size(), 0) == -1) {
