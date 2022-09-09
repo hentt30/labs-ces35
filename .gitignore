@@ -6,6 +6,8 @@
 *.lo
 *.o
 *.obj
+echo-client
+echo-server
 
 # Precompiled Headers
 *.gch
