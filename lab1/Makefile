@@ -5,9 +5,9 @@ USERID=cesarmarcondes
 #CLASSES=SUA_LIB_COMUM
 all: echo-server echo-client multi-thread showip
 echo-server: 
-	$(CXX) -o $@ $^ $(CXXFLAGS) $@.cpp
+	$(CXX) -o $@ $^ $(CXXFLAGS) $@.cpp http.cpp
 echo-client: 
-	$(CXX) -o $@ $^ $(CXXFLAGS) $@.cpp
+	$(CXX) -o $@ $^ $(CXXFLAGS) $@.cpp http.cpp
 multi-thread:
 	$(CXX) -o $@ $^ $(CXXFLAGS) $@.cpp
 showip:
