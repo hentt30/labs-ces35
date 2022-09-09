@@ -1,3 +1,4 @@
+#define BUFFER_SIZE 3000
 #include <string>
 #include <vector>
 
