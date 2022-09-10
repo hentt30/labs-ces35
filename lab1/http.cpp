@@ -89,7 +89,8 @@ void HTTPResponse::setBody(const std::string& body){ this->body = body;}
 std::string HTTPResponse::getBody() { return this->body;}
 
 std::string HTTPResponse::getHttpMessage(){
-    std::string message = format<std::string>("HTTP/1.0 %s %s\r\nContent-Length: %d\r\nContent-Type: %s\r\n\r\n", std::to_string(this->statusCode), this->statusMessage,this->contentType,this->contentLength);
+    std::cout << this->contentLength << std::endl;
+    std::string message = "HTTP/1.0" +std::to_string(this->statusCode)+" "+this->statusMessage+"\r\nContent-Length: "+std::to_string(this->contentLength)+"\r\nContent-Type: "+this->contentType+"\r\n\r\n"+ this->body;
     return message;
 }
 std::vector<int8> HTTPResponse::encode(){
@@ -104,15 +105,13 @@ std::vector<int8> HTTPResponse::encode(){
 void HTTPResponse::decode(std::vector<int8> data){
     //iterate line by line
     std::string line;
-    bool line_end1 = false, line_end2 = false, end_header = false;
+    int count = 0;
     for(size_t itr = 0; itr < data.size(); ++itr){
-        if(data[itr] == 13){ line_end1 = true;std::cout<<line<<std::endl;}
-        if(data[itr] == 10 && line_end1){ line_end2 = true;}
-        else{ line_end1 = false;}
-        if(data[itr] == 13 && line_end2){ end_header = true;}
-        else{ line_end2=false; line_end1=false;}
-        if(data[itr] == 10 && end_header){
-            std::cout << "End message decoding" << std::endl;
+        if(data[itr] == 13 || data[itr] == 10){++count;}
+        else {count = std::max(count-1,0);}
+
+        if(count == 4){
+            std::cout << "End Header" << std::endl;
             std::string body;
             for(size_t itr2 = itr+1; itr2 < data.size(); ++itr2){
                 body += (char) data[itr2];
@@ -120,8 +119,7 @@ void HTTPResponse::decode(std::vector<int8> data){
             this->setBody(body);
             break;
         }
-        else{ end_header=false;line_end2=false;line_end1=false;}
-        if(line_end2 && !end_header){
+        else if(count==2){
             //parse line
             std::vector<std::string> arguments;
             std::istringstream ss(line);
@@ -137,6 +135,6 @@ void HTTPResponse::decode(std::vector<int8> data){
             else if(arguments[0] == "Content-Type:"){ this->setContentType(arguments[1]);}
             line = "";
         }
-        if(!line_end1){ line += (char) data[itr];}
+        else{ line += (char) data[itr];}
     }
 }

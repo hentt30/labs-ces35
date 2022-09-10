@@ -179,25 +179,6 @@ int main(int argc, char *argv[]) {
       perror("send");
       return 4;
     }
-    /*int ia = 0;
-    while(true)
-    {
-      ++ia;
-      if (recv(sockfd, buf, BUFFER_SIZE, 0) == -1) {
-        perror("recv");
-        return 5;
-      }
-      size_t itr = 0;
-      string response;
-      while(itr < BUFFER_SIZE) {
-        response += buf[itr];
-        ++itr;
-      }
-      cout<<endl<<ia <<endl;
-      cout<<response<<endl;
-      if (ia == 1) return 0;
-
-    }*/
     std::vector<uint8_t> encodedMessage;
     std::string response = "";
     std::string contentLength = "";
@@ -265,7 +246,7 @@ int main(int argc, char *argv[]) {
 
     HTTPResponse httpResponse = HTTPResponse();
     httpResponse.decode(encodedMessage);
-
+    cout << httpResponse.getHttpMessage() << endl;
     //std::ofstream resource(getPathFromUrl(url));
     //resource << httpResponse.getBody();
     //resource.close();
