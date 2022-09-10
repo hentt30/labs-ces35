@@ -44,19 +44,17 @@ int HTTPRequest::decode(std::vector<int8> data){
     try {
         //iterate line by line
         std::string line;
+        int count = 0;
         bool line_end1 = false, line_end2 = false, end_header = false;
         for(size_t itr = 0; itr < data.size(); ++itr){
-            if(data[itr] == 13){ line_end1 = true;}
-            if(data[itr] == 10 && line_end1){ line_end2 = true;}
-            else{ line_end1 = false;}
-            if(data[itr] == 13 && line_end2){ end_header = true;}
-            else{ line_end2=false;}
-            if(data[itr] == 10 && end_header){
+            if(data[itr] == 10 || data[itr] ==13){++count;}
+            else{count = std::max(count-1,0);}
+            
+            if(count == 4){
                 std::cout << "End message decoding" << std::endl;
                 break;
             }
-            else{ end_header=false;}
-            if(line_end2 && !end_header){
+            else if (count == 2){
                 //parse line
                 std::vector<std::string> arguments;
                 std::istringstream ss(line);
@@ -72,7 +70,7 @@ int HTTPRequest::decode(std::vector<int8> data){
                 else if(arguments[0] == "Host:"){ this->setHost(arguments[1]);}
                 line = "";
             }
-            if(!line_end1){ line += (char) data[itr];}
+            else{ line += (char) data[itr];}
         }
         return 0;
     }
