@@ -106,11 +106,11 @@ void HTTPResponse::decode(std::vector<int8> data){
     std::string line;
     bool line_end1 = false, line_end2 = false, end_header = false;
     for(size_t itr = 0; itr < data.size(); ++itr){
-        if(data[itr] == 13){ line_end1 = true;}
+        if(data[itr] == 13){ line_end1 = true;std::cout<<line<<std::endl;}
         if(data[itr] == 10 && line_end1){ line_end2 = true;}
         else{ line_end1 = false;}
         if(data[itr] == 13 && line_end2){ end_header = true;}
-        else{ line_end2=false;}
+        else{ line_end2=false; line_end1=false;}
         if(data[itr] == 10 && end_header){
             std::cout << "End message decoding" << std::endl;
             std::string body;
@@ -120,7 +120,7 @@ void HTTPResponse::decode(std::vector<int8> data){
             this->setBody(body);
             break;
         }
-        else{ end_header=false;}
+        else{ end_header=false;line_end2=false;line_end1=false;}
         if(line_end2 && !end_header){
             //parse line
             std::vector<std::string> arguments;

@@ -128,7 +128,8 @@ int main(int argc, char *argv[]) {
     
     struct sockaddr_in serverAddr;
     serverAddr.sin_family = AF_INET;
-    serverAddr.sin_port = htons(getPortFromUrl(url));     // short, network byte order
+    serverAddr.sin_port =htons(getPortFromUrl(url)); 
+       // short, network byte order
     serverAddr.sin_addr.s_addr = hostToIpAddr(getHostFromUrl(url));
     memset(serverAddr.sin_zero, '\0', sizeof(serverAddr.sin_zero));
     
@@ -178,48 +179,99 @@ int main(int argc, char *argv[]) {
       perror("send");
       return 4;
     }
+    /*int ia = 0;
+    while(true)
+    {
+      ++ia;
+      if (recv(sockfd, buf, BUFFER_SIZE, 0) == -1) {
+        perror("recv");
+        return 5;
+      }
+      size_t itr = 0;
+      string response;
+      while(itr < BUFFER_SIZE) {
+        response += buf[itr];
+        ++itr;
+      }
+      cout<<endl<<ia <<endl;
+      cout<<response<<endl;
+      if (ia == 1) return 0;
 
-    
+    }*/
     std::vector<uint8_t> encodedMessage;
-    while(true){
+    std::string response = "";
+    std::string contentLength = "";
+    int contentLengthPosition = -1;
+    //bool endHeader1 = false, endHeader2 = false, endLine1 = false, endLine2 = false;
+    while(contentLengthPosition == -1){
+      contentLengthPosition = response.find("Content-Length: ");
       // recebe no buffer uma certa quantidade de bytes ate 20 
       if (recv(sockfd, buf, BUFFER_SIZE, 0) == -1) {
         perror("recv");
         return 5;
       }
       size_t itr = 0;
-      while(buf[itr] != '\0') {
+      while(itr < BUFFER_SIZE) {
         encodedMessage.push_back((uint8_t)buf[itr]);
+        response += buf[itr];
         ++itr;
       }
-
-      size_t size = encodedMessage.size();
-      cout<<size<<endl;
-      if(encodedMessage.size() < 4) continue;
-      
-      if(encodedMessage[size - 1] == 13 && encodedMessage[size - 2] == 10 && encodedMessage[size - 3] == 13 && encodedMessage[size - 4] == 10)
-      {
-        break;
+      // zera o buffer
+      memset(buf, '\0', sizeof(buf));
+      if(contentLengthPosition != -1) {
+        contentLengthPosition += 16;
+        while(response[contentLengthPosition] != '\r') {
+          contentLength += (char) encodedMessage[contentLengthPosition];
+          ++contentLengthPosition;
+        }
       }
-
+    }
+    size_t bodyPosition = response.find("\r\n\r\n") + 4;
+    while(bodyPosition < 4) {
+      if (recv(sockfd, buf, BUFFER_SIZE, 0) == -1) {
+        perror("recv");
+        return 5;
+      }
+      size_t itr = 0;
+      while(itr < BUFFER_SIZE) {
+        encodedMessage.push_back((uint8_t)buf[itr]);
+        response += buf[itr];
+        ++itr;
+      }
+      // zera o buffer
+      memset(buf, '\0', sizeof(buf));
+      bodyPosition = response.find("\r\n\r\n") + 4;
+    }
+    std::string content = "";
+    // for(size_t itr = 0; itr < stoi(contentLength) && bodyPosition + itr < response.length(); ++itr) {
+    //   content += response[itr+bodyPosition];
+    // }
+    content = response.substr(bodyPosition, response.length()-bodyPosition);
+    while((int)content.length() < stoi(contentLength)) {
+      if (recv(sockfd, buf, BUFFER_SIZE, 0) == -1) {
+        perror("recv");
+        return 5;
+      }
+      size_t itr = 0;
+      while(itr < BUFFER_SIZE && (int)content.length() < stoi(contentLength)) {
+        encodedMessage.push_back((uint8_t)buf[itr]);
+        response += buf[itr];
+        content += buf[itr];
+        ++itr;
+      }
+      // zera o buffer
+      memset(buf, '\0', sizeof(buf));
     }
 
-    string a;
-    for(uint8_t i : encodedMessage) a +=  (char)i;
+    HTTPResponse httpResponse = HTTPResponse();
+    httpResponse.decode(encodedMessage);
 
-    // coloca o conteudo do buffer na string
-    // imprime o buffer na tela
-    ss << a << std::endl;
+    //std::ofstream resource(getPathFromUrl(url));
+    //resource << httpResponse.getBody();
+    //resource.close();
 
-    HTTPResponse response = HTTPResponse();
-    response.decode(encodedMessage);
-
-    std::ofstream resource(getPathFromUrl(url));
-    resource << response.getBody();
-    resource.close();
-
-    ss << response.getHttpMessage() << std::endl;
-    
+    //ss << httpResponse.getHttpMessage() << std::endl;
+    //cout << httpResponse.getHttpMessage() << endl;
     // o conteudo do buffer convertido para string pode 
     // ser comparado com palavras-chave
     if (ss.str() == "close\n")
