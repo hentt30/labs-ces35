@@ -86,11 +86,11 @@ void HTTPResponse::setStatusMessage(const std::string& message){ this->statusMes
 void HTTPResponse::setContentLength(int contentLength){ this->contentLength = contentLength;}
 void HTTPResponse::setContentType(const std::string& type){ this->contentType = type;}
 void HTTPResponse::setBody(const std::string& body){ this->body = body;}
+void HTTPResponse::setHttpVersion(const std::string& httpVersion){ this->httpVersion = httpVersion;}
 std::string HTTPResponse::getBody() { return this->body;}
 
 std::string HTTPResponse::getHttpMessage(){
-    std::cout << this->contentLength << std::endl;
-    std::string message = "HTTP/1.0" +std::to_string(this->statusCode)+" "+this->statusMessage+"\r\nContent-Length: "+std::to_string(this->contentLength)+"\r\nContent-Type: "+this->contentType+"\r\n\r\n"+ this->body;
+    std::string message = this->httpVersion+" " +std::to_string(this->statusCode)+" "+this->statusMessage+"\r\nContent-Length: "+std::to_string(this->contentLength)+"\r\nContent-Type: "+this->contentType+"\r\n\r\n"+ this->body;
     return message;
 }
 std::vector<int8> HTTPResponse::encode(){
@@ -111,7 +111,6 @@ void HTTPResponse::decode(std::vector<int8> data){
         else {count = std::max(count-1,0);}
 
         if(count == 4){
-            std::cout << "End Header" << std::endl;
             std::string body;
             for(size_t itr2 = itr+1; itr2 < data.size(); ++itr2){
                 body += (char) data[itr2];
@@ -127,7 +126,8 @@ void HTTPResponse::decode(std::vector<int8> data){
             while(std::getline(ss, token, ' ')) {
                 arguments.push_back(token);
             }
-            if(arguments[0] == "HTTP/1.0"){
+            if(arguments[0] == "HTTP/1.0"||arguments[0] == "HTTP/1.1"){
+                this->setHttpVersion(arguments[0]);
                 this->setStatusCode(std::stoi(arguments[1]));
                 this->setStatusMessage(arguments[2]);
             }
