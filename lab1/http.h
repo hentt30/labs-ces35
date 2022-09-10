@@ -1,3 +1,4 @@
+#define BUFFER_SIZE 20
 #include <string>
 #include <vector>
 
@@ -27,12 +28,14 @@ class HTTPResponse
         int contentLength;
         std::string contentType;
         std::string body;
+        std::string httpVersion;
     public:
         void setStatusCode(int statusCode);
         void setStatusMessage(const std::string& message);
         void setContentLength(int contentLength);
         void setContentType(const std::string& type);
         void setBody(const std::string& body);
+        void setHttpVersion(const std::string& httpVersion);
         std::string getBody();
         std::vector<int8> encode();
         void decode(std::vector<int8> data);
