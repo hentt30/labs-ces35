@@ -76,7 +76,17 @@ int main(int argc, char *argv[]) {
   // verificar que sockfd e clientSockfd sao sockets diferentes
   // sockfd eh a "socket de boas vindas"
   // clientSockfd eh a "socket diretamente com o cliente"
-  struct sockaddr_in clientAddr;
+  
+  // usa um vetor de caracteres para preencher o endereço IP do cliente
+  
+
+  // faz leitura e escrita dos dados da conexao 
+  // utiliza um buffer de 20 bytes (char)
+  bool isEnd = false;
+  
+
+  while (!isEnd) {
+    struct sockaddr_in clientAddr;
   socklen_t clientAddrSize = sizeof(clientAddr);
   int clientSockfd = accept(sockfd, (struct sockaddr*)&clientAddr, &clientAddrSize);
 
@@ -85,53 +95,69 @@ int main(int argc, char *argv[]) {
     return 4;
   }
 
-  // usa um vetor de caracteres para preencher o endereço IP do cliente
-  char ipstr[INET_ADDRSTRLEN] = {'\0'};
+    // zera a memoria do buffer
+    char ipstr[INET_ADDRSTRLEN] = {'\0'};
   inet_ntop(clientAddr.sin_family, &clientAddr.sin_addr, ipstr, sizeof(ipstr));
   std::cout << "Accept a connection from: " << ipstr << ":" <<
     ntohs(clientAddr.sin_port) << std::endl;
-
-  // faz leitura e escrita dos dados da conexao 
-  // utiliza um buffer de 20 bytes (char)
-  bool isEnd = false;
-  char buf[20] = {0};
-  std::stringstream ss;
-
-  while (!isEnd) {
-    // zera a memoria do buffer
-    memset(buf, '\0', sizeof(buf));
+    char buf[20] = {0};
+    std::stringstream ss;
+    
 
     // recebe ate 20 bytes do cliente remoto
-    if (recv(clientSockfd, buf, 20, 0) == -1) {
-      perror("recv");
-      return 5;
+    std::string textMessage;
+    while(true)
+    {
+      
+      memset(buf, '\0', sizeof(buf));
+      if (recv(clientSockfd, buf, 20, 0) == -1) {
+        perror("recv");
+        return 5;
+      }
+      size_t itr = 0;
+      while(buf[itr]!= '\0' && textMessage.find("\r\n\r\n") == (size_t)-1)
+      {
+        textMessage += buf[itr];
+        ++itr;
+      }
+      
+      if(textMessage.find("\r\n\r\n") != (size_t)-1)
+      {
+        break;
+      }
+
     }
 
-    // Imprime o valor recebido no servidor antes de reenviar
-    // para o cliente de volta
-    ss << buf << std::endl;
-    std::cout << buf << std::endl;
-    
-    // We should analyze the buffer call
-    
+    std::vector<uint8_t> message;
+    for(char c : textMessage)
+    {
+      message.push_back(c);
+    }
+
     HTTPRequest request = HTTPRequest();
+    
     HTTPResponse response = HTTPResponse();
 
-    if (request.decode(std::vector<uint8_t>(buf, buf+20)) == -1) {
+    if (request.decode(message) == -1) {
       response.setStatusCode(400);
       response.setStatusMessage("Bad Request");
       response.setContentLength(0);
       response.setContentType("text/html");
       response.setBody("");
+      response.setHttpVersion("HTTP/1.0");
     }
     else {
-      std::ifstream resource(request.getPath());
-      if (resource.fail()) {
+      
+      std::ifstream resource;
+      std::string path = "."+dir+request.getPath();
+      resource.open(path);
+      if (!resource) {
         response.setStatusCode(404);
         response.setStatusMessage("Not Found");
         response.setContentLength(0);
         response.setContentType("text/html");
         response.setBody("");
+        response.setHttpVersion("HTTP/1.0");
       }
       else {
         std::stringstream buffer2;
@@ -143,28 +169,38 @@ int main(int argc, char *argv[]) {
         response.setContentLength(text_resource.length());
         response.setContentType("text/html");
         response.setBody(text_resource);
+        response.setHttpVersion("HTTP/1.0");
       }
     }
-
     std::vector<uint8_t> encoded_response = response.encode();
 
     // envia de volta o buffer recebido como um echo
-    if (send(clientSockfd, &encoded_response[0], encoded_response.size(), 0) == -1) {
-      perror("send");
-      return 6;
+    for (size_t itr = 0; itr < encoded_response.size();) {
+      memset(buf, '\0', sizeof(buf));
+      for (size_t itr2 = 0; itr2 < BUFFER_SIZE && itr < encoded_response.size() ; ++itr2) {
+        buf[itr2] = encoded_response[itr];
+        ++itr;
+      }
+      if (send(clientSockfd, buf, BUFFER_SIZE, 0) == -1) {
+        perror("send");
+        return 6;
+      }
     }
+    
 
     // o conteudo do buffer convertido para string pode 
     // ser comparado com palavras-chave
+
     if (ss.str() == "close\n")
       break;
 
     // zera a string para receber a proxima
     ss.str("");
+    close(clientSockfd);
   }
 
   // fecha o socket
-  close(clientSockfd);
+  
 
   return 0;
 }

@@ -27,7 +27,7 @@ void HTTPRequest::setMethod(const std::string& method){ this->method = method;}
 void HTTPRequest::setHost(const std::string& host){ this->host = host;}
         
 std::string HTTPRequest::getHttpMessage(){
-    std::string message = this->method +" "+this->path+" HTTP/1.0\r\nHost:"+this->host+"\r\n\r\n";
+    std::string message = this->method +" "+this->path+" HTTP/1.0\r\nHost: "+this->host+"\r\n\r\n";
     return message;
 }
 std::vector<int8> HTTPRequest::encode(){
@@ -45,7 +45,6 @@ int HTTPRequest::decode(std::vector<int8> data){
         //iterate line by line
         std::string line;
         int count = 0;
-        bool line_end1 = false, line_end2 = false, end_header = false;
         for(size_t itr = 0; itr < data.size(); ++itr){
             if(data[itr] == 10 || data[itr] ==13){++count;}
             else{count = std::max(count-1,0);}
@@ -55,6 +54,7 @@ int HTTPRequest::decode(std::vector<int8> data){
                 break;
             }
             else if (count == 2){
+                count = 0;
                 //parse line
                 std::vector<std::string> arguments;
                 std::istringstream ss(line);

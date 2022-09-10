@@ -185,6 +185,7 @@ int main(int argc, char *argv[]) {
     int contentLengthPosition = -1;
     //bool endHeader1 = false, endHeader2 = false, endLine1 = false, endLine2 = false;
     while(contentLengthPosition == -1){
+      
       contentLengthPosition = response.find("Content-Length: ");
       // recebe no buffer uma certa quantidade de bytes ate 20 
       if (recv(sockfd, buf, BUFFER_SIZE, 0) == -1) {
