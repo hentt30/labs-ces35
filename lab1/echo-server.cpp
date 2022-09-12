@@ -87,18 +87,18 @@ int main(int argc, char *argv[]) {
 
   while (!isEnd) {
     struct sockaddr_in clientAddr;
-  socklen_t clientAddrSize = sizeof(clientAddr);
-  int clientSockfd = accept(sockfd, (struct sockaddr*)&clientAddr, &clientAddrSize);
+    socklen_t clientAddrSize = sizeof(clientAddr);
+    int clientSockfd = accept(sockfd, (struct sockaddr*)&clientAddr, &clientAddrSize);
 
-  if (clientSockfd == -1) {
-    perror("accept");
-    return 4;
-  }
+    if (clientSockfd == -1) {
+      perror("accept");
+      return 4;
+    }
 
     // zera a memoria do buffer
     char ipstr[INET_ADDRSTRLEN] = {'\0'};
-  inet_ntop(clientAddr.sin_family, &clientAddr.sin_addr, ipstr, sizeof(ipstr));
-  std::cout << "Accept a connection from: " << ipstr << ":" <<
+    inet_ntop(clientAddr.sin_family, &clientAddr.sin_addr, ipstr, sizeof(ipstr));
+    std::cout << "Accept a connection from: " << ipstr << ":" <<
     ntohs(clientAddr.sin_port) << std::endl;
     char buf[20] = {0};
     std::stringstream ss;
@@ -119,88 +119,92 @@ int main(int argc, char *argv[]) {
       {
         textMessage += buf[itr];
         ++itr;
-      }
-      
-      if(textMessage.find("\r\n\r\n") != (size_t)-1)
-      {
-        break;
-      }
+        }
+
+        if(textMessage.find("\r\n\r\n") != (size_t)-1)
+        {
+          break;
+        }
 
     }
 
-    std::vector<uint8_t> message;
-    for(char c : textMessage)
+    if(!fork())
     {
-      message.push_back(c);
-    }
+      std::vector<uint8_t> message;
+      for(char c : textMessage)
+      {
+        message.push_back(c);
+      }
 
-    HTTPRequest request = HTTPRequest();
-    
-    HTTPResponse response = HTTPResponse();
+      HTTPRequest request = HTTPRequest();
 
-    if (request.decode(message) == -1) {
-      response.setStatusCode(400);
-      response.setStatusMessage("Bad Request");
-      response.setContentLength(0);
-      response.setContentType("text/html");
-      response.setBody("");
-      response.setHttpVersion("HTTP/1.0");
-    }
-    else {
-      
-      std::ifstream resource;
-      std::string path = "."+dir+request.getPath();
-      resource.open(path);
-      if (!resource) {
-        response.setStatusCode(404);
-        response.setStatusMessage("Not Found");
+      HTTPResponse response = HTTPResponse();
+
+      if (request.decode(message) == -1) {
+        response.setStatusCode(400);
+        response.setStatusMessage("Bad Request");
         response.setContentLength(0);
         response.setContentType("text/html");
         response.setBody("");
         response.setHttpVersion("HTTP/1.0");
       }
       else {
-        std::stringstream buffer2;
-        buffer2 << resource.rdbuf();
-        std::string text_resource = buffer2.str();
 
-        response.setStatusCode(200);
-        response.setStatusMessage("OK");
-        response.setContentLength(text_resource.length());
-        response.setContentType("text/html");
-        response.setBody(text_resource);
-        response.setHttpVersion("HTTP/1.0");
+        std::ifstream resource;
+        std::string path = "."+dir+request.getPath();
+        resource.open(path);
+        if (!resource) {
+          response.setStatusCode(404);
+          response.setStatusMessage("Not Found");
+          response.setContentLength(0);
+          response.setContentType("text/html");
+          response.setBody("");
+          response.setHttpVersion("HTTP/1.0");
+        }
+        else {
+          std::stringstream buffer2;
+          buffer2 << resource.rdbuf();
+          std::string text_resource = buffer2.str();
+
+          response.setStatusCode(200);
+          response.setStatusMessage("OK");
+          response.setContentLength(text_resource.length());
+          response.setContentType("text/html");
+          response.setBody(text_resource);
+          response.setHttpVersion("HTTP/1.0");
+        }
       }
-    }
-    std::vector<uint8_t> encoded_response = response.encode();
+      std::vector<uint8_t> encoded_response = response.encode();
 
-    // envia de volta o buffer recebido como um echo
-    for (size_t itr = 0; itr < encoded_response.size();) {
-      memset(buf, '\0', sizeof(buf));
-      for (size_t itr2 = 0; itr2 < BUFFER_SIZE && itr < encoded_response.size() ; ++itr2) {
-        buf[itr2] = encoded_response[itr];
-        ++itr;
+      // envia de volta o buffer recebido como um echo
+      for (size_t itr = 0; itr < encoded_response.size();) {
+        memset(buf, '\0', sizeof(buf));
+        for (size_t itr2 = 0; itr2 < BUFFER_SIZE && itr < encoded_response.size() ; ++itr2) {
+          buf[itr2] = encoded_response[itr];
+          ++itr;
+        }
+        if (send(clientSockfd, buf, BUFFER_SIZE, 0) == -1) {
+          perror("send");
+          return 6;
+        }
       }
-      if (send(clientSockfd, buf, BUFFER_SIZE, 0) == -1) {
-        perror("send");
-        return 6;
-      }
-    }
-    
 
-    // o conteudo do buffer convertido para string pode 
-    // ser comparado com palavras-chave
 
-    if (ss.str() == "close\n")
-      break;
+      // o conteudo do buffer convertido para string pode 
+      // ser comparado com palavras-chave
 
-    // zera a string para receber a proxima
-    ss.str("");
-    close(clientSockfd);
-  }
+      if (ss.str() == "close\n")
+        break;
 
-  // fecha o socket
-  
+      // zera a string para receber a proxima
+      ss.str("");
+      close(clientSockfd);
+      exit(0);
+    } 
+  } 
+
+  //   fecha o socket
+
 
   return 0;
 }
