@@ -1,4 +1,10 @@
 # Laboratório 1 - CES 35
+## Alunos
+- Thomas Alberto de Castro Neto
+- Caio Graça Gomes
+- Henrique Fernandes Feitosa
+
+## Introdução
 
 Esse laboratório consiste na implementação do protocolo HTTP 1.0 para a realização de requests simples. A implementação
 consiste em um cliente e um servidor que se comunicam para estabelecer o resultado desejado.
